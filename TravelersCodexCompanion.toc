@@ -2,7 +2,7 @@
 ## Title: Traveler's Codex Companion
 ## Notes: Collects character data for Traveler's Codex desktop app
 ## Author: Traveler's Codex
-## Version: 1.0.0
+## Version: 1.1.0
 ## SavedVariables: TravelersCodexDB
 ## OptionalDeps: Auctionator, TradeSkillMaster, Auc-Advanced, RECrystallize
 

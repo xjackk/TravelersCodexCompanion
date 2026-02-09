@@ -728,7 +728,7 @@ local function PrintSummary()
         local lastScan = TravelersCodexDB.ahPrices.scanTime and date("%Y-%m-%d %H:%M", TravelersCodexDB.ahPrices.scanTime) or "Never"
         print("|cFF00FF00Traveler's Codex:|r AH Data: " .. count .. " items (last scan: " .. lastScan .. ")")
     else
-        print("|cFF00FF00Traveler's Codex:|r AH Data: None. Use /aha scan after doing Auctionator Full Scan.")
+        print("|cFF00FF00Traveler's Codex:|r AH Data: None. Use /tcodex scan after doing Auctionator Full Scan.")
     end
 end
 
@@ -747,9 +747,9 @@ frame:SetScript("OnEvent", function(self, event, ...)
     if event == "PLAYER_LOGIN" then
         C_Timer.After(2, function()
             CollectAllData()
-            print("|cFF00FF00Traveler's Codex:|r Character data collected for " .. GetCharacterKey())
 
             -- Hook into Auctionator's scan completion event
+            local auctionatorHooked = false
             if Auctionator and Auctionator.EventBus and Auctionator.FullScan and Auctionator.FullScan.Events then
                 local TravelersCodexEventHandler = {}
                 function TravelersCodexEventHandler:ReceiveEvent(eventName)
@@ -761,10 +761,11 @@ frame:SetScript("OnEvent", function(self, event, ...)
                 Auctionator.EventBus:Register(TravelersCodexEventHandler, {
                     Auctionator.FullScan.Events.ScanComplete
                 })
-                print("|cFF00FF00Traveler's Codex:|r Hooked into Auctionator - prices will auto-export after Full Scan.")
-            else
-                print("|cFF00FF00Traveler's Codex:|r Auctionator not detected. Use /aha scan manually after scanning.")
+                auctionatorHooked = true
             end
+
+            local status = auctionatorHooked and "Auctionator linked" or "type /tcodex help for commands"
+            print("|cFF00FF00Traveler's Codex:|r Loaded — " .. status .. ". Use /tcodex for status.")
         end)
     elseif event == "PLAYER_MONEY" then
         local key = GetCharacterKey()
@@ -798,9 +799,9 @@ frame:SetScript("OnEvent", function(self, event, ...)
 end)
 
 -- Slash commands
-SLASH_TRAVELERSCODEX1 = "/tc"
-SLASH_TRAVELERSCODEX2 = "/travelerscodex"
-SLASH_TRAVELERSCODEX3 = "/aha"  -- Keep old command for compatibility
+SLASH_TRAVELERSCODEX1 = "/tcodex"
+SLASH_TRAVELERSCODEX2 = "/tcx"
+SLASH_TRAVELERSCODEX3 = "/travelerscodex"
 SlashCmdList["TRAVELERSCODEX"] = function(msg)
     msg = msg and msg:lower() or ""
 
@@ -810,122 +811,12 @@ SlashCmdList["TRAVELERSCODEX"] = function(msg)
         -- Clear AH price data to start fresh
         TravelersCodexDB.ahPrices = nil
         print("|cFF00FF00Traveler's Codex:|r AH price data cleared! Do /reload then run a Full Scan in Auctionator.")
-    elseif msg == "debug" then
-        -- Debug: show what's in Auctionator's database
-        print("|cFF00FF00Traveler's Codex Debug:|r Checking Auctionator database...")
-
-        if not Auctionator then
-            print("|cFFFF0000  Auctionator addon not loaded!|r")
-            return
-        end
-
-        -- Check various possible database locations
-        print("|cFFFFD700  Checking Auctionator structure:|r")
-        print("    Auctionator.Database exists: " .. tostring(Auctionator.Database ~= nil))
-        print("    Auctionator.Database.db exists: " .. tostring(Auctionator.Database and Auctionator.Database.db ~= nil))
-
-        -- Check saved variables directly
-        print("|cFFFFD700  Checking SavedVariables:|r")
-        print("    AUCTIONATOR_PRICE_DATABASE exists: " .. tostring(AUCTIONATOR_PRICE_DATABASE ~= nil))
-        print("    AUCTIONATOR_POSTING_HISTORY exists: " .. tostring(AUCTIONATOR_POSTING_HISTORY ~= nil))
-
-        -- Count entries in main database
-        local dbCount = 0
-        local sampleKeys = {}
-        if Auctionator.Database and Auctionator.Database.db then
-            for k, v in pairs(Auctionator.Database.db) do
-                dbCount = dbCount + 1
-                if #sampleKeys < 5 then
-                    table.insert(sampleKeys, k)
-                end
-            end
-        end
-        print("    Auctionator.Database.db entries: " .. dbCount)
-
-        -- Check AUCTIONATOR_PRICE_DATABASE structure
-        local priceDbCount = 0
-        local priceDbSample = {}
-        if AUCTIONATOR_PRICE_DATABASE then
-            -- It might be nested by realm
-            for realm, realmData in pairs(AUCTIONATOR_PRICE_DATABASE) do
-                print("    Found realm in price DB: " .. tostring(realm))
-                if type(realmData) == "table" then
-                    for k, v in pairs(realmData) do
-                        priceDbCount = priceDbCount + 1
-                        if #priceDbSample < 3 then
-                            table.insert(priceDbSample, {realm = realm, key = k})
-                        end
-                    end
-                end
-            end
-        end
-        print("    AUCTIONATOR_PRICE_DATABASE total entries: " .. priceDbCount)
-
-        if #sampleKeys > 0 then
-            print("|cFFFFD700  Sample keys from Database.db:|r")
-            for _, k in ipairs(sampleKeys) do
-                print("    " .. tostring(k))
-            end
-        end
-
-        if #priceDbSample > 0 then
-            print("|cFFFFD700  Sample from PRICE_DATABASE:|r")
-            for _, s in ipairs(priceDbSample) do
-                print("    [" .. tostring(s.realm) .. "] " .. tostring(s.key))
-            end
-        end
-
-        -- Search for specific items like Dawnstone
-        print("|cFFFFD700  Searching for known gems:|r")
-        local testItems = {
-            {id = 23440, name = "Dawnstone"},
-            {id = 23436, name = "Living Ruby"},
-            {id = 23439, name = "Noble Topaz"},
-            {id = 23441, name = "Nightseye"},
-            {id = 7910, name = "Star Ruby"},
-        }
-
-        -- Also show what GetItemInfo returns for these items
-        print("|cFFFFD700  Item info check:|r")
-        for _, item in ipairs(testItems) do
-            local itemName, _, _, _, _, itemType, itemSubType = GetItemInfo(item.id)
-            if itemName then
-                print("    " .. item.name .. ": type=" .. tostring(itemType) .. ", subtype=" .. tostring(itemSubType))
-            else
-                print("    " .. item.name .. ": GetItemInfo returned nil (not cached)")
-            end
-        end
-        for _, item in ipairs(testItems) do
-            local found = false
-            local foundIn = ""
-            -- Check Database.db
-            if Auctionator.Database and Auctionator.Database.db then
-                if Auctionator.Database.db[tostring(item.id)] then
-                    found = true
-                    foundIn = "Database.db[" .. item.id .. "]"
-                end
-            end
-            -- Check AUCTIONATOR_PRICE_DATABASE
-            if not found and AUCTIONATOR_PRICE_DATABASE then
-                for realm, realmData in pairs(AUCTIONATOR_PRICE_DATABASE) do
-                    if type(realmData) == "table" and realmData[tostring(item.id)] then
-                        found = true
-                        foundIn = "PRICE_DATABASE[" .. realm .. "][" .. item.id .. "]"
-                        break
-                    end
-                end
-            end
-            local status = found and "|cFF00FF00FOUND|r in " .. foundIn or "|cFFFF0000NOT FOUND|r"
-            print("    " .. item.name .. " (" .. item.id .. "): " .. status)
-        end
-
     elseif msg == "help" then
         print("|cFF00FF00Traveler's Codex Commands:|r")
-        print("  /tc - Show status and sync character data")
-        print("  /tc scan - Manually export Auctionator's AH database")
-        print("  /tc clear - Clear AH price data and start fresh")
-        print("  /tc debug - Debug Auctionator database structure")
-        print("  /tc help - Show this help")
+        print("  /tcodex - Show status and sync character data")
+        print("  /tcodex scan - Manually export Auctionator's AH database")
+        print("  /tcodex clear - Clear AH price data and start fresh")
+        print("  /tcodex help - Show this help")
         print("")
         print("|cFFFFD700Workflow:|r")
         print("  1. Open Auction House and click 'Full Scan' in Auctionator")
