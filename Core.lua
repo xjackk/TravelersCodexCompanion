@@ -801,7 +801,8 @@ end)
 -- Slash commands
 SLASH_TRAVELERSCODEX1 = "/tcodex"
 SLASH_TRAVELERSCODEX2 = "/tcx"
-SLASH_TRAVELERSCODEX3 = "/travelerscodex"
+SLASH_TRAVELERSCODEX3 = "/tc"
+SLASH_TRAVELERSCODEX4 = "/travelerscodex"
 SlashCmdList["TRAVELERSCODEX"] = function(msg)
     msg = msg and msg:lower() or ""
 
@@ -812,11 +813,11 @@ SlashCmdList["TRAVELERSCODEX"] = function(msg)
         TravelersCodexDB.ahPrices = nil
         print("|cFF00FF00Traveler's Codex:|r AH price data cleared! Do /reload then run a Full Scan in Auctionator.")
     elseif msg == "help" then
-        print("|cFF00FF00Traveler's Codex Commands:|r")
-        print("  /tcodex - Show status and sync character data")
-        print("  /tcodex scan - Manually export Auctionator's AH database")
-        print("  /tcodex clear - Clear AH price data and start fresh")
-        print("  /tcodex help - Show this help")
+        print("|cFF00FF00Traveler's Codex Commands:|r (aliases: /tcodex, /tcx, /tc)")
+        print("  /tc - Show status and sync character data")
+        print("  /tc scan - Manually export Auctionator's AH database")
+        print("  /tc clear - Clear AH price data and start fresh")
+        print("  /tc help - Show this help")
         print("")
         print("|cFFFFD700Workflow:|r")
         print("  1. Open Auction House and click 'Full Scan' in Auctionator")
