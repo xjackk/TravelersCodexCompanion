@@ -5,5 +5,6 @@
 ## Version: 1.1.0
 ## SavedVariables: TravelersCodexDB
 ## OptionalDeps: Auctionator, TradeSkillMaster, Auc-Advanced, RECrystallize
+## X-Curse-Project-ID: 1465003
 
 Core.lua
